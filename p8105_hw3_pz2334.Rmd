@@ -1,0 +1,179 @@
+---
+title: "p8105_hw3_pz2334"
+author: "Puyuan Zhang"
+date: "`r Sys.Date()`"
+output:
+github_document:
+  html_preview: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(knitr)
+library(ggplot2)
+```
+
+## Poblem 2
+```{r}
+accel = read.csv("data/nhanes_accel.csv") |>
+  janitor::clean_names()
+combine_data = read.csv("data/nhanes_covar.csv", skip = 4) |>
+  janitor::clean_names() |>
+  mutate(gender = case_when(
+        sex == 1 ~ "Male", 
+        sex == 2 ~ "Female"),
+         education_level = case_when(
+           education == 1 ~ "Less than high school",
+           education == 2 ~ "High school equivalent",
+           education == 3 ~ "More than high school"
+         ))|>
+  drop_na()|>
+  inner_join(accel, "seqn") |>
+  filter(age >= 21) 
+```
+```{r}
+combine_data |>
+  group_by(education_level) |>
+  summarize(Male = sum(gender == "Male"), 
+            Female = sum(gender == "Female"))
+```
+For "High School Equivaleng",  there are 35 males and 23 females. There are 27 males and 28 females did not complete high school. And there are 56 males and 49 females get higher education. This suggest that more people in both gender continue education after they graduated from high school.
+
+```{r}
+ggplot(combine_data, aes(x = age, fill = gender)) + 
+  geom_histogram(position = "dodge",bins = 5) + 
+  facet_grid(~ education_level)
+```
+For "High School Equivalent", it shows a realtively even distribution across different age groups for both gender, with a slight increase in frequency around the age of 60s. The counts for males and females are comparable across different ages. This balanced distribution suggests that both men and women have similar opportunities and rates of completing high school, across different ages.
+
+For "Less Than High School", both genders have similar counts across younger and middle age groups, with a slight increase in 40 and 60. This indicates that older people had fewer chances complete high school. It shows that the lack of completing high school is quite evenly distributed between different genders.
+
+For "More Than High School", there is a noticeable higher number of females than males in the 20-30 age range. For older ages, the numbers between men and women are similar. The large number of younger women with more than a high school education could suggest that women in this age group either had better access to education or have remained actively involved in educational activities. For older people, the equal numbers suggest that higher education has become more equally accessible to both men and women.
+
+```{r}
+activity_data = combine_data |>
+  mutate(total_activity=rowSums(across(starts_with("min")))) |>
+  select(-starts_with("min"))
+```
+```{r}
+ggplot(activity_data, 
+       aes(x = age, y = total_activity, fill = gender)) +
+  geom_point(aes(color = gender)) + 
+  geom_smooth(aes(color = gender)) +
+  facet_wrap(~ education_level)
+```
+For the first panel("High School Equivalent"), activity levels show a general decline with age for males. Trend for female is similar, but before age 40, activities have an increasing trend. 
+
+For the "Less than high school" panel, generally, activity levels has a decline with age. But males has a peak between age 40 to 50. Female also has a peal at the similar age period.
+
+For the "More Than High School" panel, the trend is stabilizing. Comparing to the other 2 panel, for both gender, it does not have a dramaticly decreasing trend. And for every age level in this panel, females are always more active comparing to males.
+
+Acrossing these 3 panels, we may conclude that no matter the education level, younger people are always more active, but how quickly their activity drops off as they age can be different. People with more education are end to stay active as their activity level does not drop dramaticly.
+
+```{r}
+accel_data_long <- combine_data |>
+  pivot_longer(
+    cols = starts_with("min"),
+    names_to = "minute",
+    names_prefix = "min",
+    values_to = "activity"
+  )
+average_activity_data <- accel_data_long %>%
+  group_by(education_level, gender, minute) %>%
+  summarize(average_activity = mean(activity, na.rm = TRUE), .groups = 'drop')
+```
+```{r}
+ggplot(average_activity_data, aes(x = as.numeric(minute), y = average_activity, color = gender)) +
+  geom_line() +
+  geom_smooth()+
+  facet_wrap(~ education_level)
+```
+High School Equivaleng:
+For both males and females, they display similar activity patterns with a peak at a similar time period, although females show slightly higher activity levels after 250 minutes.
+
+Less Than High School:
+Both males and females peak at similar times and follow a similar trend. Females are less active at the beginning of the day but then become slightly more active during peak times.
+
+More Than High School:
+For both men and women, they exhibit similar patterns with two peaks occurring within a short time period. Females seem to be more active throughout the day, especially during peak times.
+
+Generally, acrossing all the education levels, women tend to be more active than men.
+
+## Problem 3
+```{r}
+jan_2020 = read.csv("citibike/Jan 2020 Citi.csv") |>
+  janitor::clean_names() |>
+  mutate(month = "Jan",
+         year = 2020)
+jan_2024 = read.csv("citibike/Jan 2024 Citi.csv") |>
+  janitor::clean_names()|>
+  mutate(month = "Jan",
+         year = 2024)
+july_2020 = read.csv("citibike/July 2020 Citi.csv") |>
+  janitor::clean_names() |>
+  mutate(month = "July",
+         year = 2020)
+july_2024 = read.csv("citibike/July 2024 Citi.csv") |>
+  janitor::clean_names() |>
+  mutate(month = "July",
+         year = 2024)
+```
+```{r}
+combine_bike = jan_2020 |>
+  rbind(jan_2024, july_2020, july_2024) 
+```
+```{r}
+combine_bike |>
+  group_by(month, year) |>
+  summarize(member = sum(member_casual == "member"),
+            casual = sum(member_casual == "casual"), .groups = "keep")
+```
+```{r}
+july_2024 |>
+  group_by(start_station_name) |>
+  summarize(n_obs = n()) |>
+  arrange(desc(n_obs)) |>
+  head(5)
+```
+
+```{r}
+median_duration = combine_bike |>
+  group_by(month, year, weekdays) |>
+  summarize(median_dur = median(duration), .groups = "keep")
+
+ggplot(median_duration, aes(x = weekdays, y = median_dur, group = interaction(year, month), color = month)) +
+  geom_point() +
+  geom_line() +
+  scale_x_discrete(limits = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))+
+  facet_wrap(~ year)
+```
+People tend to ride bikes longer in July than in January in these 2 years. In 2020, people rode bikes the most on weekends in both July and January. By 2024, this peak activity remains in July and the riding pattern on January is totally different from others. The peak also occur on Sunday but on saturday, the riding time is relative shorter. Comparing 2020 and 2024, we can find that the riding duratio on each month are relative higher in 2020.
+
+```{r}
+duration_2020 = combine_bike |>
+  filter(year == 2024)
+
+ggplot(duration_2020, aes(x = month, y = duration, color = member_casual, fill = member_casual)) +
+  geom_violin() +
+  stat_summary(fun = "median") +
+  facet_grid(rideable_type ~ .)
+```
+There are two types of bikes, classic and electric, represented in separate rows. The data for January and July show that ride durations are generally shorter in January and longer in July for both types of bikes and both user types. In all cases, casual riders tend to have longer ride durations than members.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
