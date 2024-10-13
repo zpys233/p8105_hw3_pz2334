@@ -104,19 +104,19 @@ Generally, acrossing all the education levels, women tend to be more active than
 
 ## Problem 3
 ```{r}
-jan_2020 = read.csv("citibike/Jan 2020 Citi.csv") |>
+jan_2020 = read.csv("data/citibike/Jan 2020 Citi.csv") |>
   janitor::clean_names() |>
   mutate(month = "Jan",
          year = 2020)
-jan_2024 = read.csv("citibike/Jan 2024 Citi.csv") |>
+jan_2024 = read.csv("data/citibike/Jan 2024 Citi.csv") |>
   janitor::clean_names()|>
   mutate(month = "Jan",
          year = 2024)
-july_2020 = read.csv("citibike/July 2020 Citi.csv") |>
+july_2020 = read.csv("data/citibike/July 2020 Citi.csv") |>
   janitor::clean_names() |>
   mutate(month = "July",
          year = 2020)
-july_2024 = read.csv("citibike/July 2024 Citi.csv") |>
+july_2024 = read.csv("data/citibike/July 2024 Citi.csv") |>
   janitor::clean_names() |>
   mutate(month = "July",
          year = 2024)
